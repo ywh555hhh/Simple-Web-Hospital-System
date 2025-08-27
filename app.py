@@ -635,15 +635,33 @@ def get_drug_inventory_stats():
 @app.route('/')
 def index():
     """重定向到登录页面"""
-    return app.send_static_file('login.html')
+    try:
+        with open('login.html', 'r', encoding='utf-8') as f:
+            return f.read()
+    except:
+        return "登录页面不存在", 404
 
 @app.route('/<path:filename>')
 def serve_static(filename):
     """提供静态文件服务"""
     try:
-        return app.send_static_file(filename)
-    except:
-        return "文件不存在", 404
+        # 检查文件是否存在
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            # 根据文件扩展名设置Content-Type
+            if filename.endswith('.html'):
+                return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+            elif filename.endswith('.css'):
+                return content, 200, {'Content-Type': 'text/css; charset=utf-8'}
+            elif filename.endswith('.js'):
+                return content, 200, {'Content-Type': 'application/javascript; charset=utf-8'}
+            else:
+                return content
+        else:
+            return "文件不存在", 404
+    except Exception as e:
+        return f"读取文件失败: {str(e)}", 500
 
 if __name__ == '__main__':
     # 检查数据库是否存在

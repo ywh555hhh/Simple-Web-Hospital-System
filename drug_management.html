@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>药品管理 - 校医院医务收费管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+        }
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .stock-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .stock-low { background: #ffebee; color: #d32f2f; }
+        .stock-normal { background: #fff3e0; color: #f57c00; }
+        .stock-high { background: #e8f5e8; color: #388e3c; }
+        .btn-custom {
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1><i class="bi bi-capsule"></i> 药品管理</h1>
+                    <p class="mb-0">药品信息和库存管理</p>
+                </div>
+                <div class="col-auto">
+                    <a href="index.html" class="btn btn-light">
+                        <i class="bi bi-house"></i> 返回主页
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 操作工具栏 -->
+        <div class="content-card">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="搜索药品名称...">
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button type="button" class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#drugModal" onclick="showAddDrugModal()">
+                        <i class="bi bi-plus-circle"></i> 新增药品
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 药品列表 -->
+        <div class="content-card">
+            <h4 class="mb-4"><i class="bi bi-list-ul"></i> 药品清单</h4>
+            
+            <div id="alertContainer"></div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>药品名称</th>
+                            <th>进价</th>
+                            <th>售价</th>
+                            <th>库存</th>
+                            <th>库存状态</th>
+                            <th>库存阈值</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drugsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2 text-muted">加载中...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 药品编辑模态框 -->
+    <div class="modal fade" id="drugModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新增药品</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="drugForm">
+                        <input type="hidden" id="editingDrugId">
+                        
+                        <div class="mb-3">
+                            <label for="drugName" class="form-label">药品名称 *</label>
+                            <input type="text" class="form-control" id="drugName" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="purchasePrice" class="form-label">进价 (元) *</label>
+                                    <input type="number" class="form-control" id="purchasePrice" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="salePrice" class="form-label">售价 (元) *</label>
+                                    <input type="number" class="form-control" id="salePrice" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="stock" class="form-label">初始库存</label>
+                                    <input type="number" class="form-control" id="stock" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="minThreshold" class="form-label">最低库存</label>
+                                    <input type="number" class="form-control" id="minThreshold" min="0" value="10">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="maxThreshold" class="form-label">最高库存</label>
+                                    <input type="number" class="form-control" id="maxThreshold" min="0" value="100">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveDrugBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 库存调整模态框 -->
+    <div class="modal fade" id="stockModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">库存调整</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>药品：</strong><span id="stockDrugName"></span><br>
+                        <strong>当前库存：</strong><span id="currentStock"></span> 个单位
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="stockQuantity" class="form-label">增加数量</label>
+                        <input type="number" class="form-control" id="stockQuantity" min="1" value="1">
+                        <div class="form-text">请输入要增加的库存数量</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" id="addStockBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        确认增加
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let currentDrugs = [];
+        let editingDrugId = null;
+        let stockDrugId = null;
+        
+        // 显示提示信息
+        function showAlert(message, type = 'danger') {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            $('#alertContainer').html(alertHtml);
+            
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+        
+        // 检查权限
+        function checkPermission() {
+            $.ajax({
+                url: '/api/current_user',
+                method: 'GET',
+                success: function(response) {
+                    if (!response.success || !['pharmacy', 'admin'].includes(response.user.role)) {
+                        alert('您没有权限访问此页面');
+                        window.location.href = '/index.html';
+                    }
+                },
+                error: function() {
+                    window.location.href = '/login.html';
+                }
+            });
+        }
+        
+        // 加载药品列表
+        function loadDrugs() {
+            $.ajax({
+                url: '/api/drugs',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        currentDrugs = response.data;
+                        displayDrugs(currentDrugs);
+                    } else {
+                        showAlert('加载药品列表失败');
+                    }
+                },
+                error: function() {
+                    showAlert('加载药品列表失败');
+                    $('#drugsTableBody').html('<tr><td colspan="7" class="text-center text-danger">加载失败</td></tr>');
+                }
+            });
+        }
+        
+        // 显示药品列表
+        function displayDrugs(drugs) {
+            if (drugs.length === 0) {
+                $('#drugsTableBody').html('<tr><td colspan="7" class="text-center text-muted">暂无药品数据</td></tr>');
+                return;
+            }
+            
+            let html = '';
+            drugs.forEach(drug => {
+                const stockStatus = getStockStatus(drug);
+                const statusClass = stockStatus === '库存告急' ? 'stock-low' : 
+                                  stockStatus === '库存正常' ? 'stock-normal' : 'stock-high';
+                
+                html += `
+                    <tr>
+                        <td><strong>${drug.name}</strong></td>
+                        <td>¥${drug.purchase_price.toFixed(2)}</td>
+                        <td>¥${drug.sale_price.toFixed(2)}</td>
+                        <td><strong>${drug.stock}</strong></td>
+                        <td><span class="stock-status ${statusClass}">${stockStatus}</span></td>
+                        <td>${drug.min_threshold} - ${drug.max_threshold}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="showEditDrugModal(${drug.id})" title="编辑">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="showStockModal(${drug.id})" title="增加库存">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            $('#drugsTableBody').html(html);
+        }
+        
+        // 获取库存状态
+        function getStockStatus(drug) {
+            if (drug.stock <= drug.min_threshold) {
+                return '库存告急';
+            } else if (drug.stock >= drug.max_threshold) {
+                return '库存充足';
+            } else {
+                return '库存正常';
+            }
+        }
+        
+        // 搜索功能
+        $('#searchInput').on('input', function() {
+            const query = $(this).val().toLowerCase();
+            const filtered = currentDrugs.filter(drug => 
+                drug.name.toLowerCase().includes(query)
+            );
+            displayDrugs(filtered);
+        });
+        
+        // 显示新增药品模态框
+        function showAddDrugModal() {
+            editingDrugId = null;
+            $('#modalTitle').text('新增药品');
+            $('#drugForm')[0].reset();
+            $('#stock').val(0);
+            $('#minThreshold').val(10);
+            $('#maxThreshold').val(100);
+        }
+        
+        // 显示编辑药品模态框
+        function showEditDrugModal(drugId) {
+            const drug = currentDrugs.find(d => d.id === drugId);
+            if (!drug) return;
+            
+            editingDrugId = drugId;
+            $('#modalTitle').text('编辑药品');
+            $('#drugName').val(drug.name);
+            $('#purchasePrice').val(drug.purchase_price);
+            $('#salePrice').val(drug.sale_price);
+            $('#stock').val(drug.stock).prop('disabled', true); // 编辑时不允许修改库存
+            $('#minThreshold').val(drug.min_threshold);
+            $('#maxThreshold').val(drug.max_threshold);
+            
+            $('#drugModal').modal('show');
+        }
+        
+        // 保存药品
+        $('#saveDrugBtn').on('click', function() {
+            const $btn = $(this);
+            const $spinner = $btn.find('.spinner-border');
+            
+            const formData = {
+                name: $('#drugName').val().trim(),
+                purchase_price: parseFloat($('#purchasePrice').val()),
+                sale_price: parseFloat($('#salePrice').val()),
+                min_threshold: parseInt($('#minThreshold').val()),
+                max_threshold: parseInt($('#maxThreshold').val())
+            };
+            
+            // 验证数据
+            if (!formData.name) {
+                showAlert('请输入药品名称');
+                return;
+            }
+            
+            if (formData.purchase_price <= 0 || formData.sale_price <= 0) {
+                showAlert('价格必须大于0');
+                return;
+            }
+            
+            if (formData.min_threshold < 0 || formData.max_threshold < 0) {
+                showAlert('库存阈值不能为负数');
+                return;
+            }
+            
+            if (formData.min_threshold >= formData.max_threshold) {
+                showAlert('最低库存必须小于最高库存');
+                return;
+            }
+            
+            // 新增时包含库存
+            if (!editingDrugId) {
+                formData.stock = parseInt($('#stock').val()) || 0;
+            }
+            
+            $btn.prop('disabled', true);
+            $spinner.removeClass('d-none');
+            
+            const url = editingDrugId ? `/api/drugs/${editingDrugId}` : '/api/drugs';
+            const method = editingDrugId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    if (response.success) {
+                        showAlert(editingDrugId ? '药品更新成功' : '药品添加成功', 'success');
+                        $('#drugModal').modal('hide');
+                        loadDrugs();
+                    } else {
+                        showAlert(response.message || '保存失败');
+                    }
+                },
+                error: function(xhr) {
+                    let message = '保存失败，请稍后重试';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    showAlert(message);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false);
+                    $spinner.addClass('d-none');
+                }
+            });
+        });
+        
+        // 显示库存调整模态框
+        function showStockModal(drugId) {
+            const drug = currentDrugs.find(d => d.id === drugId);
+            if (!drug) return;
+            
+            stockDrugId = drugId;
+            $('#stockDrugName').text(drug.name);
+            $('#currentStock').text(drug.stock);
+            $('#stockQuantity').val(1);
+            
+            $('#stockModal').modal('show');
+        }
+        
+        // 增加库存
+        $('#addStockBtn').on('click', function() {
+            const $btn = $(this);
+            const $spinner = $btn.find('.spinner-border');
+            const quantity = parseInt($('#stockQuantity').val());
+            
+            if (!quantity || quantity <= 0) {
+                showAlert('请输入有效的增加数量');
+                return;
+            }
+            
+            $btn.prop('disabled', true);
+            $spinner.removeClass('d-none');
+            
+            $.ajax({
+                url: `/api/drugs/${stockDrugId}/add_stock`,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ quantity: quantity }),
+                success: function(response) {
+                    if (response.success) {
+                        showAlert(`库存增加成功，增加了${quantity}个单位`, 'success');
+                        $('#stockModal').modal('hide');
+                        loadDrugs();
+                    } else {
+                        showAlert(response.message || '增加库存失败');
+                    }
+                },
+                error: function(xhr) {
+                    let message = '增加库存失败，请稍后重试';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    showAlert(message);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false);
+                    $spinner.addClass('d-none');
+                }
+            });
+        });
+        
+        // 编辑时恢复库存字段状态
+        $('#drugModal').on('hidden.bs.modal', function() {
+            $('#stock').prop('disabled', false);
+        });
+        
+        // 页面初始化
+        $(document).ready(function() {
+            checkPermission();
+            loadDrugs();
+        });
+    </script>
+</body>
+</html>
