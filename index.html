@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校医院医务收费管理系统 - 主页</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .main-content {
+            padding-top: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .stats-card h3 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .stats-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .welcome-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .menu-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+        .menu-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        .menu-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .menu-desc {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .alert-warning {
+            border-radius: 10px;
+            border-left: 5px solid #ffc107;
+        }
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%) !important;
+        }
+        .bg-gradient-info {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%) !important;
+        }
+        .bg-gradient-warning {
+            background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-hospital"></i> 校医院管理系统
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> 
+                        <span id="userFullName">用户</span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="logout()">
+                            <i class="bi bi-box-arrow-right"></i> 退出登录
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <div class="container main-content">
+        <!-- 欢迎信息 -->
+        <div class="welcome-card">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2>欢迎使用校医院医务收费管理系统</h2>
+                    <p class="text-muted mb-0">当前用户：<span id="currentUserInfo"></span></p>
+                    <p class="text-muted">登录时间：<span id="loginTime"></span></p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <i class="bi bi-heart-pulse text-primary" style="font-size: 4rem;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计数据 -->
+        <div class="row" id="statsContainer">
+            <!-- 统计卡片将通过JavaScript动态生成 -->
+        </div>
+
+        <!-- 库存预警 -->
+        <div id="alertContainer"></div>
+
+        <!-- 功能菜单 -->
+        <div class="row" id="menuContainer">
+            <!-- 菜单项将通过JavaScript根据用户角色动态生成 -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let currentUser = null;
+        
+        // 用户权限菜单配置
+        const roleMenus = {
+            admin: [
+                { 
+                    title: '科室管理', 
+                    desc: '管理医院科室信息', 
+                    icon: 'bi-building', 
+                    url: 'dept_management.html',
+                    color: 'primary'
+                },
+                { 
+                    title: '用户管理', 
+                    desc: '管理系统操作员', 
+                    icon: 'bi-people', 
+                    url: 'user_management.html',
+                    color: 'success'
+                },
+                { 
+                    title: '药品管理', 
+                    desc: '药品信息和库存管理', 
+                    icon: 'bi-capsule', 
+                    url: 'drug_management.html',
+                    color: 'info'
+                },
+                { 
+                    title: '统计查询', 
+                    desc: '查看系统统计报表', 
+                    icon: 'bi-graph-up', 
+                    url: 'stats.html',
+                    color: 'warning'
+                }
+            ],
+            registration: [
+                { 
+                    title: '病人挂号', 
+                    desc: '为患者办理挂号手续', 
+                    icon: 'bi-person-plus', 
+                    url: 'registration.html',
+                    color: 'primary'
+                },
+                { 
+                    title: '统计查询', 
+                    desc: '查看挂号统计信息', 
+                    icon: 'bi-graph-up', 
+                    url: 'stats.html',
+                    color: 'info'
+                }
+            ],
+            doctor: [
+                { 
+                    title: '开具处方', 
+                    desc: '为患者开具电子处方', 
+                    icon: 'bi-file-medical', 
+                    url: 'prescription.html',
+                    color: 'primary'
+                },
+                { 
+                    title: '统计查询', 
+                    desc: '查看诊疗统计信息', 
+                    icon: 'bi-graph-up', 
+                    url: 'stats.html',
+                    color: 'info'
+                }
+            ],
+            cashier: [
+                { 
+                    title: '缴费结算', 
+                    desc: '处理患者缴费业务', 
+                    icon: 'bi-credit-card', 
+                    url: 'cashier.html',
+                    color: 'primary'
+                },
+                { 
+                    title: '统计查询', 
+                    desc: '查看收费统计信息', 
+                    icon: 'bi-graph-up', 
+                    url: 'stats.html',
+                    color: 'info'
+                }
+            ],
+            pharmacy: [
+                { 
+                    title: '药品管理', 
+                    desc: '药品信息和库存管理', 
+                    icon: 'bi-capsule', 
+                    url: 'drug_management.html',
+                    color: 'primary'
+                },
+                { 
+                    title: '统计查询', 
+                    desc: '查看药品库存统计', 
+                    icon: 'bi-graph-up', 
+                    url: 'stats.html',
+                    color: 'info'
+                }
+            ]
+        };
+        
+        // 检查登录状态
+        function checkLogin() {
+            $.ajax({
+                url: '/api/current_user',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        currentUser = response.user;
+                        initializePage();
+                    } else {
+                        window.location.href = '/login.html';
+                    }
+                },
+                error: function() {
+                    window.location.href = '/login.html';
+                }
+            });
+        }
+        
+        // 初始化页面
+        function initializePage() {
+            // 显示用户信息
+            $('#userFullName').text(currentUser.full_name);
+            $('#currentUserInfo').text(`${currentUser.full_name} (${getRoleName(currentUser.role)})`);
+            $('#loginTime').text(new Date().toLocaleString());
+            
+            // 加载统计数据
+            loadStats();
+            
+            // 根据用户角色生成菜单
+            generateMenus();
+        }
+        
+        // 获取角色中文名称
+        function getRoleName(role) {
+            const roleNames = {
+                admin: '系统管理员',
+                registration: '挂号员',
+                doctor: '医生',
+                cashier: '收费员',
+                pharmacy: '药房管理员'
+            };
+            return roleNames[role] || role;
+        }
+        
+        // 加载统计数据
+        function loadStats() {
+            $.ajax({
+                url: '/api/stats/today',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayStats(response.data);
+                        checkAlerts(response.data);
+                    }
+                },
+                error: function() {
+                    console.error('加载统计数据失败');
+                }
+            });
+        }
+        
+        // 显示统计数据
+        function displayStats(stats) {
+            const statsHtml = `
+                <div class="col-md-3">
+                    <div class="stats-card bg-gradient-primary">
+                        <h3>${stats.today_registrations}</h3>
+                        <p>今日挂号</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card bg-gradient-success">
+                        <h3>¥${stats.total_income.toFixed(2)}</h3>
+                        <p>今日收入</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card bg-gradient-info">
+                        <h3>${stats.pending_prescriptions}</h3>
+                        <p>待缴费处方</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card bg-gradient-warning">
+                        <h3>${stats.low_stock_drugs}</h3>
+                        <p>库存告急药品</p>
+                    </div>
+                </div>
+            `;
+            $('#statsContainer').html(statsHtml);
+        }
+        
+        // 检查并显示预警信息
+        function checkAlerts(stats) {
+            let alerts = [];
+            
+            if (stats.pending_prescriptions > 5) {
+                alerts.push(`当前有 ${stats.pending_prescriptions} 张处方待缴费，请及时处理`);
+            }
+            
+            if (stats.low_stock_drugs > 0) {
+                alerts.push(`有 ${stats.low_stock_drugs} 种药品库存告急，请及时补货`);
+            }
+            
+            if (alerts.length > 0) {
+                let alertHtml = alerts.map(alert => 
+                    `<div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> ${alert}
+                    </div>`
+                ).join('');
+                $('#alertContainer').html(alertHtml);
+            }
+        }
+        
+        // 根据用户角色生成菜单
+        function generateMenus() {
+            const menus = roleMenus[currentUser.role] || [];
+            let menuHtml = '';
+            
+            menus.forEach(menu => {
+                menuHtml += `
+                    <div class="col-md-6 col-lg-3">
+                        <a href="${menu.url}" class="menu-card text-decoration-none">
+                            <div class="text-center">
+                                <i class="bi ${menu.icon} menu-icon text-${menu.color}"></i>
+                                <div class="menu-title">${menu.title}</div>
+                                <div class="menu-desc">${menu.desc}</div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            });
+            
+            $('#menuContainer').html(menuHtml);
+        }
+        
+        // 退出登录
+        function logout() {
+            $.ajax({
+                url: '/api/logout',
+                method: 'GET',
+                success: function() {
+                    window.location.href = '/login.html';
+                },
+                error: function() {
+                    window.location.href = '/login.html';
+                }
+            });
+        }
+        
+        // 页面加载时检查登录状态
+        $(document).ready(function() {
+            checkLogin();
+        });
+    </script>
+</body>
+</html>
