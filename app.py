@@ -160,7 +160,7 @@ def delete_department(dept_id):
 
 # 药品管理API (药房管理员和管理员)
 @app.route('/api/drugs', methods=['GET'])
-@role_required(['pharmacy', 'admin'])
+@role_required(['pharmacy', 'admin', 'doctor'])  # 增加 doctor 角色
 def get_drugs():
     """获取所有药品"""
     conn = get_db()
@@ -630,6 +630,45 @@ def get_drug_inventory_stats():
     conn.close()
     
     return jsonify({'success': True, 'data': drugs})
+
+@app.route('/api/pending_prescriptions', methods=['GET'])
+@role_required(['cashier'])
+def get_pending_prescriptions():
+    """获取待缴费处方列表"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.id, r.patient_name, u.full_name as doctor_name, p.total_amount, p.created_at
+        FROM prescriptions p
+        JOIN registrations r ON p.registration_id = r.id
+        JOIN doctors doc ON p.doctor_id = doc.id
+        JOIN users u ON doc.user_id = u.id
+        WHERE p.status = 'pending_payment'
+        ORDER BY p.created_at ASC
+    ''')
+    prescriptions = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify({'success': True, 'data': prescriptions})
+
+@app.route('/api/recent_payments', methods=['GET'])
+@role_required(['cashier'])
+def get_recent_payments():
+    """获取最近缴费记录"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.id, r.patient_name, u.full_name as doctor_name, p.total_amount, p.created_at as paid_time
+        FROM prescriptions p
+        JOIN registrations r ON p.registration_id = r.id
+        JOIN doctors doc ON p.doctor_id = doc.id
+        JOIN users u ON doc.user_id = u.id
+        WHERE p.status = 'paid'
+        ORDER BY p.created_at DESC
+        LIMIT 20
+    ''')
+    payments = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify({'success': True, 'data': payments})
 
 # 静态文件服务
 @app.route('/')

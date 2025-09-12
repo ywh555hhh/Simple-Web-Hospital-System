@@ -269,38 +269,30 @@
         
         // 加载待缴费处方列表
         function loadPendingPrescriptions() {
-            // 使用模拟数据，实际应该从API获取
-            const mockPrescriptions = [
-                {
-                    id: 6,
-                    patient_name: '陈伟',
-                    doctor_name: '张三',
-                    total_amount: 52.0,
-                    created_at: new Date().toISOString()
+            $('#pendingPrescriptions').html('<div class="text-center text-muted"><div class="spinner-border" role="status"></div><p class="mt-2">加载中...</p></div>');
+            $.ajax({
+                url: '/api/pending_prescriptions',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        displayPendingPrescriptions(response.data);
+                    } else {
+                        $('#pendingPrescriptions').html('<div class="text-muted">暂无待缴费处方</div>');
+                    }
                 },
-                {
-                    id: 7,
-                    patient_name: '孙敏',
-                    doctor_name: '王五',
-                    total_amount: 25.0,
-                    created_at: new Date().toISOString()
-                },
-                {
-                    id: 8,
-                    patient_name: '周杰',
-                    doctor_name: '李四',
-                    total_amount: 35.0,
-                    created_at: new Date().toISOString()
+                error: function(xhr) {
+                    let msg = '加载失败';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    $('#pendingPrescriptions').html('<div class="text-danger">' + msg + '</div>');
                 }
-            ];
-            
-            if (mockPrescriptions.length === 0) {
-                $('#pendingPrescriptions').html('<div class="text-muted">暂无待缴费处方</div>');
-                return;
-            }
-            
+            });
+        }
+
+        function displayPendingPrescriptions(prescriptions) {
             let html = '';
-            mockPrescriptions.forEach(prescription => {
+            prescriptions.forEach(prescription => {
                 html += `
                     <div class="prescription-card" style="cursor: pointer;" onclick="loadPrescriptionDetails(${prescription.id})">
                         <div class="row align-items-center">
@@ -317,7 +309,6 @@
                     </div>
                 `;
             });
-            
             $('#pendingPrescriptions').html(html);
         }
         
@@ -474,46 +465,38 @@
         
         // 加载最近缴费记录
         function loadRecentPayments() {
-            // 使用模拟数据
-            const mockPayments = [
-                {
-                    id: 1,
-                    patient_name: '张明',
-                    doctor_name: '张三',
-                    total_amount: 60.5,
-                    paid_time: new Date().toLocaleString(),
-                    status: 'paid'
+            $('#recentPayments').html('<tr><td colspan="6" class="text-center text-muted">加载中...</td></tr>');
+            $.ajax({
+                url: '/api/recent_payments', // 你需要在后端实现此接口
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        let html = '';
+                        response.data.forEach(payment => {
+                            html += `
+                                <tr>
+                                    <td>#${payment.id}</td>
+                                    <td>${payment.patient_name}</td>
+                                    <td>${payment.doctor_name}</td>
+                                    <td>¥${payment.total_amount.toFixed(2)}</td>
+                                    <td>${payment.paid_time ? payment.paid_time : ''}</td>
+                                    <td><span class="badge bg-success">已缴费</span></td>
+                                </tr>
+                            `;
+                        });
+                        $('#recentPayments').html(html);
+                    } else {
+                        $('#recentPayments').html('<tr><td colspan="6" class="text-center text-muted">暂无数据</td></tr>');
+                    }
                 },
-                {
-                    id: 2,
-                    patient_name: '李华',
-                    doctor_name: '李四',
-                    total_amount: 48.0,
-                    paid_time: new Date().toLocaleString(),
-                    status: 'paid'
+                error: function(xhr) {
+                    let msg = '加载失败';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    $('#recentPayments').html('<tr><td colspan="6" class="text-danger">' + msg + '</td></tr>');
                 }
-            ];
-            
-            if (mockPayments.length === 0) {
-                $('#recentPayments').html('<tr><td colspan="6" class="text-center text-muted">暂无数据</td></tr>');
-                return;
-            }
-            
-            let html = '';
-            mockPayments.forEach(payment => {
-                html += `
-                    <tr>
-                        <td>#${payment.id}</td>
-                        <td>${payment.patient_name}</td>
-                        <td>${payment.doctor_name}</td>
-                        <td>¥${payment.total_amount.toFixed(2)}</td>
-                        <td>${payment.paid_time}</td>
-                        <td><span class="badge bg-success">已缴费</span></td>
-                    </tr>
-                `;
             });
-            
-            $('#recentPayments').html(html);
         }
         
         // 页面初始化
